@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ReadPay — Pay for what you read</title>
+<meta name="description" content="Browser extension that automatically pays for articles with USDC on Arc. No subscription, no sign-up."/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#C73A08;
+  --blue-mid:#D94A10;
+  --blue-light:#E8440A;
+  --blue-pale:#FBE9E7;
+  --white:#ffffff;
+  --dark:#111111;
+  --dark2:#1A1A1A;
+  --dark3:#222222;
+  --text:#F0F0F0;
+  --muted:#999999;
+  --border:rgba(232,68,10,0.22);
+  --radius:14px;
+}
+body{
+  background:var(--dark);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue-light);text-decoration:none}
+
+a:hover{text-decoration:underline}
+
+/* NAV */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 6%;
+  background:rgba(17,17,17,0.95);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:1.1rem;letter-spacing:-0.02em;color:var(--white)}
+.logo-mark{width:36px;height:36px;background:var(--blue-light);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.nav-center{display:flex;gap:32px;list-style:none}
+.nav-center a{color:var(--muted);font-size:0.9rem;transition:color 0.2s}
+.nav-center a:hover{color:var(--white);text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:12px}
+
+/* Language switcher */
+.lang-switcher{display:flex;align-items:center;gap:4px;background:var(--dark3);border:1px solid var(--border);border-radius:99px;padding:3px}
+.lang-btn{
+  padding:5px 12px;border-radius:99px;
+  font-size:0.75rem;font-weight:600;letter-spacing:0.02em;
+  border:none;cursor:pointer;background:transparent;
+  color:var(--muted);transition:background 0.18s,color 0.18s;
+  line-height:1;
+}
+.lang-btn.active{background:var(--blue-light);color:var(--white)}
+.lang-btn:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.06)}
+
+.btn-nav{
+  background:var(--blue-light);color:var(--white);
+  padding:9px 20px;border-radius:8px;
+  font-size:0.88rem;font-weight:600;
+  transition:background 0.2s,transform 0.15s;text-decoration:none;
+}
+.btn-nav:hover{background:var(--blue-mid);transform:translateY(-1px);text-decoration:none}
+
+/* HERO */
+.hero{
+  max-width:1100px;margin:0 auto;
+  padding:90px 6% 0;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:60px;align-items:center;
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(232,68,10,0.1);border:1px solid rgba(232,68,10,0.35);
+  color:#FF8A65;padding:6px 16px;border-radius:99px;
+  font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+  margin-bottom:26px;
+}
+.pulse{width:7px;height:7px;background:var(--blue-light);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+h1{font-size:clamp(2rem,4.5vw,3.2rem);font-weight:800;line-height:1.08;letter-spacing:-0.04em;color:var(--white);margin-bottom:22px}
+h1 em{font-style:normal;color:var(--blue-light)}
+.hero-sub{font-size:1.05rem;color:var(--muted);line-height:1.75;margin-bottom:38px;max-width:460px}
+.hero-sub strong{color:var(--text)}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:40px}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--blue-light);color:var(--white);
+  padding:14px 26px;border-radius:var(--radius);
+  font-size:0.98rem;font-weight:700;border:none;cursor:pointer;text-decoration:none;
+  transition:background 0.2s,transform 0.15s;
+}
+.btn-primary:hover{background:var(--blue-mid);transform:translateY(-2px);text-decoration:none}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;color:var(--text);
+  padding:14px 22px;border-radius:var(--radius);
+  font-size:0.98rem;font-weight:600;
+  border:1px solid var(--border);cursor:pointer;text-decoration:none;
+  transition:background 0.2s,border-color 0.2s;
+}
+.btn-ghost:hover{background:rgba(232,68,10,0.07);border-color:rgba(232,68,10,0.35);text-decoration:none}
+.trust-row{display:flex;align-items:center;gap:16px;font-size:0.78rem;color:var(--muted);flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:6px}
+.dot-green{width:6px;height:6px;background:#4CAF50;border-radius:50%}
+
+/* HERO VISUAL */
+.hero-visual{padding-bottom:28px}
+.screen-card{background:var(--dark2);border:1px solid var(--border);border-radius:20px;box-shadow:0 40px 100px rgba(0,0,0,0.5);position:relative}
+.screen-bar{background:var(--dark3);padding:13px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);border-radius:20px 20px 0 0}
+.dots2{display:flex;gap:7px}
+.d{width:11px;height:11px;border-radius:50%}
+.dr{background:#FF5F57}.dy{background:#FEBC2E}.dg{background:#28C840}
+.urlbar{flex:1;background:rgba(255,255,255,0.05);border-radius:6px;padding:5px 12px;font-size:0.73rem;color:var(--muted);font-family:monospace}
+.screen-body{padding:22px 24px}
+.article-tag{font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue-light);margin-bottom:8px}
+.article-h{font-size:1rem;font-weight:700;color:var(--white);line-height:1.4;margin-bottom:10px}
+.article-p{font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:18px}
+.paid-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(76,175,80,0.12);border:1px solid rgba(76,175,80,0.3);
+  color:#81C784;padding:7px 14px;border-radius:99px;
+  font-size:0.78rem;font-weight:700;margin-bottom:18px;
+}
+.micro-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mstat{background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.mstat-val{font-size:1.05rem;font-weight:800;color:var(--blue-light);font-family:monospace;letter-spacing:-0.03em}
+.mstat-lbl{font-size:0.65rem;color:var(--muted);margin-top:3px}
+.float-badge{
+  position:absolute;bottom:-18px;right:-20px;
+  background:var(--blue-light);color:var(--white);
+  padding:10px 18px;border-radius:12px;font-size:0.8rem;font-weight:700;
+  box-shadow:0 8px 24px rgba(232,68,10,0.45);white-space:nowrap;
+}
+
+/* DIVIDER / STATS */
+.divider{height:1px;background:var(--border);max-width:1100px;margin:80px auto 0}
+.stats-section{max-width:1100px;margin:0 auto;padding:56px 6%;display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.stat-block{text-align:center}
+.stat-num{font-size:2rem;font-weight:800;letter-spacing:-0.04em;color:var(--white);margin-bottom:4px}
+.stat-num span{color:var(--blue-light)}
+.stat-desc{font-size:0.8rem;color:var(--muted);line-height:1.5}
+.sep{height:1px;background:var(--border)}
+
+/* SECTIONS */
+.section{max-width:1100px;margin:0 auto;padding:80px 6%}
+.section-eyebrow{font-size:0.72rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue-light);margin-bottom:12px}
+.section-title{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:800;letter-spacing:-0.035em;color:var(--white);margin-bottom:14px}
+.section-sub{font-size:1rem;color:var(--muted);line-height:1.75;max-width:540px}
+
+/* TIMELINE */
+.timeline{margin-top:56px;display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:48px 1fr;gap:24px;padding-bottom:40px;position:relative}
+.tl-item:not(:last-child) .tl-line{position:absolute;left:23px;top:52px;bottom:0;width:2px;background:var(--border)}
+.tl-icon{width:48px;height:48px;background:var(--blue-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;position:relative;z-index:1}
+.tl-content{padding-top:10px}
+.tl-content h4{font-size:1rem;font-weight:700;color:var(--white);margin-bottom:7px}
+.tl-content p{font-size:0.88rem;color:var(--muted);line-height:1.7}
+.tl-content code{background:var(--dark3);border:1px solid var(--border);padding:2px 8px;border-radius:5px;font-size:0.8rem;color:#FF8A65;font-family:monospace}
+
+/* INSTALL */
+.install-grid{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.install-card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative;transition:border-color 0.25s,transform 0.2s}
+.install-card:hover{border-color:rgba(232,68,10,0.45);transform:translateY(-4px)}
+.card-num{font-size:2.5rem;font-weight:900;color:rgba(232,68,10,0.15);letter-spacing:-0.05em;position:absolute;top:20px;right:22px;line-height:1}
+.card-icon{font-size:2rem;margin-bottom:18px;display:block}
+.install-card h4{font-size:1rem;font-weight:700;color:var(--white);margin-bottom:10px}
+.install-card p{font-size:0.85rem;color:var(--muted);line-height:1.7}
+.card-link{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:0.82rem;font-weight:600;color:var(--blue-light);text-decoration:none}
+.card-link:hover{text-decoration:underline}
+.mono{background:rgba(0,0,0,0.4);border:1px solid var(--border);padding:2px 7px;border-radius:5px;font-size:0.78rem;color:#FF8A65;font-family:monospace}
+
+/* WALLET BOX */
+.wallet-box{
+  background:linear-gradient(135deg,rgba(232,68,10,0.12),rgba(26,26,26,0.9));
+  border:1px solid rgba(232,68,10,0.3);border-radius:20px;
+  padding:40px 44px;margin-top:64px;
+  display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;
+}
+.wallet-box h3{font-size:1.3rem;font-weight:800;color:var(--white);margin-bottom:10px}
+.wallet-box p{font-size:0.92rem;color:var(--muted);line-height:1.75;max-width:560px}
+.wallet-box strong{color:var(--text)}
+.wallet-visual{background:var(--dark3);border:1px solid var(--border);border-radius:14px;padding:20px 24px;min-width:240px}
+.wv-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.wv-row:last-child{margin-bottom:0}
+.wv-label{font-size:0.75rem;color:var(--muted)}
+.wv-val{font-size:0.85rem;font-weight:600;color:var(--white);font-family:monospace}
+.wv-val.green{color:#81C784}
+
+/* FAQ */
+.faq-grid{margin-top:56px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.faq-card{background:var(--dark2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color 0.2s}
+.faq-card:hover{border-color:rgba(232,68,10,0.35)}
+.faq-q{font-size:0.95rem;font-weight:700;color:var(--white);margin-bottom:10px;display:flex;align-items:flex-start;gap:10px}
+.faq-q-mark{background:rgba(232,68,10,0.15);color:var(--blue-light);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;margin-top:1px}
+.faq-a{font-size:0.85rem;color:var(--muted);line-height:1.75}
+.faq-a strong{color:var(--text)}
+.faq-a code{background:var(--dark3);border:1px solid var(--border);padding:1px 7px;border-radius:4px;font-size:0.8rem;color:#FF8A65;font-family:monospace}
+
+/* CTA FINAL */
+.cta-final{text-align:center;padding:100px 6%;background:radial-gradient(ellipse 70% 55% at 50% -10%,rgba(232,68,10,0.12),transparent);border-top:1px solid var(--border)}
+.cta-final h2{font-size:clamp(2rem,4vw,3rem);font-weight:800;letter-spacing:-0.04em;color:var(--white);margin-bottom:16px}
+.cta-final p{font-size:1rem;color:var(--muted);margin-bottom:40px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.75}
+.cta-note{margin-top:24px;font-size:0.75rem;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.cta-note span{display:flex;align-items:center;gap:5px}
+.icon-check{color:#4CAF50}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:28px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+footer .left{font-size:0.8rem;color:var(--muted)}
+footer .flinks{display:flex;gap:24px;font-size:0.8rem}
+footer .flinks a{color:var(--muted);transition:color 0.2s}
+footer .flinks a:hover{color:var(--text);text-decoration:none}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:60px}
+  .hero-visual{display:none}
+  .stats-section{grid-template-columns:repeat(2,1fr)}
+  .install-grid{grid-template-columns:1fr}
+  .faq-grid{grid-template-columns:1fr}
+  .wallet-box{grid-template-columns:1fr}
+  .wallet-visual{min-width:0}
+  .nav-center{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark">💸</div>
+    ReadPay
+  </div>
+  <ul class="nav-center">
+    <li><a href="#how-it-works" data-i18n="nav_how"></a></li>
+    <li><a href="#install" data-i18n="nav_install"></a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="lang-switcher">
+      <button class="lang-btn active" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('pt')">PT</button>
+      <button class="lang-btn" onclick="setLang('es')">ES</button>
+    </div>
+    <a href="https://github.com/Acarlosr/readpay" class="btn-nav" target="_blank">GitHub →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-tag">
+      <div class="pulse"></div>
+      <span data-i18n="hero_tag"></span>
+    </div>
+    <h1 data-i18n="hero_h1"></h1>
+    <p class="hero-sub" data-i18n="hero_sub"></p>
+    <div class="cta-row">
+      <a href="https://github.com/Acarlosr/readpay" class="btn-primary" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.26-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.115 2.5.337 1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.38.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
+        <span data-i18n="hero_cta1"></span>
+      </a>
+      <a href="#how-it-works" class="btn-ghost">
+        <span data-i18n="hero_cta2"></span>
+      </a>
+    </div>
+    <div class="trust-row">
+      <div class="trust-item"><div class="dot-green"></div><span data-i18n="trust1"></span></div>
+      <div class="trust-item"><div class="dot-green"></div><span data-i18n="trust2"></span></div>
+      <div class="trust-item"><div class="dot-green"></div><span data-i18n="trust3"></span></div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="screen-card">
+      <div class="screen-bar">
+        <div class="dots2"><div class="d dr"></div><div class="d dy"></div><div class="d dg"></div></div>
+        <div class="urlbar">publisher.example.com/exclusive-report</div>
+      </div>
+      <div class="screen-body">
+        <div class="article-tag" data-i18n="mockup_tag"></div>
+        <div class="article-h" data-i18n="mockup_title"></div>
+        <div class="article-p" data-i18n="mockup_excerpt"></div>
+        <div class="paid-pill">✓ &nbsp;<span data-i18n="mockup_paid"></span></div>
+        <div class="micro-stats">
+          <div class="mstat">
+            <div class="mstat-val">$0.37</div>
+            <div class="mstat-lbl" data-i18n="stat_spent"></div>
+          </div>
+          <div class="mstat">
+            <div class="mstat-val">6</div>
+            <div class="mstat-lbl" data-i18n="stat_articles"></div>
+          </div>
+          <div class="mstat">
+            <div class="mstat-val">&lt;1s</div>
+            <div class="mstat-lbl" data-i18n="stat_time"></div>
+          </div>
+        </div>
+      </div>
+      <div class="float-badge" data-i18n="float_badge"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="divider"></div>
+<div class="stats-section">
+  <div class="stat-block">
+    <div class="stat-num">$<span>0.000001</span></div>
+    <div class="stat-desc" data-i18n="bigstat1"></div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-num"><span>&lt;</span> 1s</div>
+    <div class="stat-desc" data-i18n="bigstat2"></div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-num">$<span>0</span></div>
+    <div class="stat-desc" data-i18n="bigstat3"></div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-num"><span>Arc</span> L1</div>
+    <div class="stat-desc" data-i18n="bigstat4"></div>
+  </div>
+</div>
+<div class="sep"></div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how-it-works">
+  <div class="section-eyebrow" data-i18n="how_eyebrow"></div>
+  <h2 class="section-title" data-i18n="how_title"></h2>
+  <p class="section-sub" data-i18n="how_sub"></p>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-line"></div>
+      <div class="tl-icon">📰</div>
+      <div class="tl-content">
+        <h4 data-i18n="tl1_h"></h4>
+        <p data-i18n="tl1_p"></p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-line"></div>
+      <div class="tl-icon">✍️</div>
+      <div class="tl-content">
+        <h4 data-i18n="tl2_h"></h4>
+        <p data-i18n="tl2_p"></p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-line"></div>
+      <div class="tl-icon">🔐</div>
+      <div class="tl-content">
+        <h4 data-i18n="tl3_h"></h4>
+        <p data-i18n="tl3_p"></p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-icon">🎯</div>
+      <div class="tl-content">
+        <h4 data-i18n="tl4_h"></h4>
+        <p data-i18n="tl4_p"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WALLET CALLOUT -->
+<div class="section" style="padding-top:0">
+  <div class="wallet-box">
+    <div>
+      <h3 data-i18n="wallet_h"></h3>
+      <p data-i18n="wallet_p"></p>
+    </div>
+    <div class="wallet-visual">
+      <div class="wv-row"><div class="wv-label" data-i18n="wv_network"></div><div class="wv-val">Arc Testnet</div></div>
+      <div class="wv-row"><div class="wv-label">Chain ID</div><div class="wv-val">5042002</div></div>
+      <div class="wv-row"><div class="wv-label" data-i18n="wv_gas"></div><div class="wv-val">USDC</div></div>
+      <div class="wv-row"><div class="wv-label" data-i18n="wv_balance"></div><div class="wv-val green">$4.82 USDC</div></div>
+      <div class="wv-row"><div class="wv-label" data-i18n="wv_spent"></div><div class="wv-val">$0.37</div></div>
+      <div class="wv-row"><div class="wv-label" data-i18n="wv_key"></div><div class="wv-val" style="font-size:0.72rem;color:#888">🔒 AES-256-GCM</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW TO INSTALL -->
+<section class="section" id="install" style="padding-top:0">
+  <div class="section-eyebrow" data-i18n="install_eyebrow"></div>
+  <h2 class="section-title" data-i18n="install_title"></h2>
+  <p class="section-sub" data-i18n="install_sub"></p>
+  <div class="install-grid">
+    <div class="install-card">
+      <div class="card-num">01</div>
+      <span class="card-icon">⬇️</span>
+      <h4 data-i18n="step1_h"></h4>
+      <p data-i18n="step1_p"></p>
+      <a href="https://github.com/Acarlosr/readpay" class="card-link" target="_blank" data-i18n="step1_link"></a>
+    </div>
+    <div class="install-card">
+      <div class="card-num">02</div>
+      <span class="card-icon">🧩</span>
+      <h4 data-i18n="step2_h"></h4>
+      <p data-i18n="step2_p"></p>
+      <a href="#faq" class="card-link" data-i18n="step2_link"></a>
+    </div>
+    <div class="install-card">
+      <div class="card-num">03</div>
+      <span class="card-icon">💧</span>
+      <h4 data-i18n="step3_h"></h4>
+      <p data-i18n="step3_p"></p>
+      <a href="https://faucet.circle.com" class="card-link" target="_blank" data-i18n="step3_link"></a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq" style="background:var(--dark2);border-radius:24px;max-width:1100px;margin:0 auto 60px;padding:60px 6%">
+  <div class="section-eyebrow" data-i18n="faq_eyebrow"></div>
+  <h2 class="section-title" data-i18n="faq_title"></h2>
+  <div class="faq-grid">
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq1_q"></span></div>
+      <p class="faq-a" data-i18n="faq1_a"></p>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq2_q"></span></div>
+      <p class="faq-a" data-i18n="faq2_a"></p>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq3_q"></span></div>
+      <p class="faq-a" data-i18n="faq3_a"></p>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq4_q"></span></div>
+      <p class="faq-a" data-i18n="faq4_a"></p>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq5_q"></span></div>
+      <p class="faq-a" data-i18n="faq5_a"></p>
+    </div>
+    <div class="faq-card">
+      <div class="faq-q"><div class="faq-q-mark">?</div><span data-i18n="faq6_q"></span></div>
+      <p class="faq-a" data-i18n="faq6_a"></p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="cta-final">
+  <h2 data-i18n="cta_h"></h2>
+  <p data-i18n="cta_p"></p>
+  <a href="https://github.com/Acarlosr/readpay" class="btn-primary" target="_blank" style="font-size:1.05rem;padding:16px 34px;display:inline-flex">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.26-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85.004 1.7.115 2.5.337 1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.38.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
+    <span data-i18n="cta_btn"></span>
+  </a>
+  <div class="cta-note">
+    <span><span class="icon-check">✓</span> MIT License</span>
+    <span><span class="icon-check">✓</span> <span data-i18n="cta_note1"></span></span>
+    <span><span class="icon-check">✓</span> AES-256 local</span>
+    <span><span class="icon-check">✓</span> <span data-i18n="cta_note2"></span></span>
+  </div>
+  <div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--muted)">
+    <span data-i18n="footer_hackathon"></span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="left">© 2026 ReadPay · MIT · <a href="https://github.com/Acarlosr/readpay" style="color:var(--blue-light)">GitHub</a></div>
+  <div class="flinks">
+    <a href="https://docs.arc.network" target="_blank">Arc Docs</a>
+    <a href="https://developers.circle.com/gateway/nanopayments" target="_blank">Circle Gateway</a>
+    <a href="https://www.x402.org" target="_blank">x402.org</a>
+    <a href="https://faucet.circle.com" target="_blank">Faucet</a>
+    <a href="https://testnet.arcscan.app" target="_blank">ArcScan</a>
+  </div>
+</footer>
+
+<script>
+const i18n = {
+  en: {
+    nav_how: "How it works",
+    nav_install: "Install",
+    hero_tag: "Arc Testnet · x402 Protocol · Circle Gateway",
+    hero_h1: "Pay for what you<br/><em>read</em>.<br/>Not for the rest.",
+    hero_sub: "A browser extension that automatically pays for articles with <strong>cents of USDC</strong> — settled in under 1 second on Arc. No sign-up. No subscription. No external wallet.",
+    hero_cta1: "Install now",
+    hero_cta2: "See how it works",
+    trust1: "Open Source · MIT",
+    trust2: "No backend server",
+    trust3: "Chrome · Edge · Brave",
+    mockup_tag: "Investigative journalism",
+    mockup_title: "The End of Subscriptions: How Nanopayments Change Journalism",
+    mockup_excerpt: "For decades, digital journalism was stuck between free content and $10/month paywalls. Now there's a third way — pay cents per article, settled instantly in USDC on Arc...",
+    mockup_paid: "Unlocked by ReadPay · $0.0100 USDC",
+    stat_spent: "spent today",
+    stat_articles: "articles",
+    stat_time: "to pay",
+    float_badge: "✓ Paid · $0.01 · Arc Testnet",
+    bigstat1: "minimum payment in USDC",
+    bigstat2: "to unlock content",
+    bigstat3: "gas fee per nanopayment",
+    bigstat4: "Circle's blockchain with native USDC",
+    how_eyebrow: "x402 Protocol",
+    how_title: "What happens when you read",
+    how_sub: "Every payment is an offchain cryptographic signature — fast and gas-free. Circle Gateway batches and settles on Arc.",
+    tl1_h: "You open the article",
+    tl1_p: "The site responds with <code>HTTP 402 Payment Required</code>. The body contains: amount in USDC, publisher wallet, and Arc network. Nothing has been paid yet.",
+    tl2_h: "ReadPay checks your budget",
+    tl2_p: "Before paying, the extension verifies your limits (e.g. max $0.10 per article, $2.00 per day). If the amount is within limits, payment is automatic.",
+    tl3_h: "EIP-3009 signature (offchain, zero gas)",
+    tl3_p: "Your key signs an <code>EIP-3009</code> authorization using the Arc balance. No onchain transaction at this point — just a local cryptographic signature.",
+    tl4_h: "Content unlocked · batch settlement",
+    tl4_p: "The article appears in under 1 second. Circle Gateway collects authorizations and settles them in a single batch onchain — the publisher receives USDC, nobody pays gas per payment.",
+    wallet_h: "No MetaMask or external wallet needed",
+    wallet_p: "Arc is <strong>EVM-compatible</strong>. ReadPay uses a private key you import once in the extension popup. It is encrypted with <strong>AES-256-GCM</strong> and stays only in your browser — never leaves the device, never goes to any server. The initial deposit is done via a <strong>free faucet</strong> (testnet — not real money).",
+    wv_network: "Network",
+    wv_gas: "Gas token",
+    wv_balance: "Reader balance",
+    wv_spent: "Spent today",
+    wv_key: "Key",
+    install_eyebrow: "Installation",
+    install_title: "Three steps to get started",
+    install_sub: "No Chrome Web Store yet — developer load in 2 minutes.",
+    step1_h: "Clone and build",
+    step1_p: "Clone the GitHub repository. Run <span class='mono'>npm install && npm run build</span>. The <span class='mono'>dist/</span> folder is generated.",
+    step1_link: "View on GitHub →",
+    step2_h: "Load in Chrome",
+    step2_p: "Go to <span class='mono'>chrome://extensions</span>, enable Developer Mode, click <strong style='color:var(--text)'>Load unpacked</strong> and select the <span class='mono'>dist/</span> folder.",
+    step2_link: "Works in Edge and Brave too →",
+    step3_h: "Free USDC via faucet",
+    step3_p: "Paste your testnet private key in the popup. Then access the Circle faucet, select Arc Testnet and receive free USDC for testing.",
+    step3_link: "Circle Faucet →",
+    faq_eyebrow: "FAQ",
+    faq_title: "Frequently asked questions",
+    faq1_q: "Do I need MetaMask or an external wallet?",
+    faq1_a: "<strong>No.</strong> ReadPay manages the key internally. You paste your private key once, it is encrypted with AES-256 and stays only in the browser. No MetaMask, no WalletConnect, no extra extension.",
+    faq2_q: "What is the Arc Testnet?",
+    faq2_a: "Circle's L1 blockchain, EVM-compatible, that uses <strong>USDC as its native gas token</strong>. Finality in under 1 second. Chain ID <code>5042002</code>, RPC at <code>rpc.testnet.arc.network</code>. Testnet only — funds are free via faucet.",
+    faq3_q: "How much does each payment cost?",
+    faq3_a: "<strong>Zero gas fee</strong> thanks to Circle Gateway (batch settlement). You only pay the article price — typically $0.001 to $0.05 USDC. On testnet, USDC is free via faucet.",
+    faq4_q: "Is my private key safe?",
+    faq4_a: "The key is encrypted with <code>AES-256-GCM</code> (native browser SubtleCrypto) before saving to <code>chrome.storage.local</code>. Never sent to any server. <strong>Use testnet wallets only.</strong>",
+    faq5_q: "What is the x402 protocol?",
+    faq5_a: "An open standard that uses the HTTP code <code>402 Payment Required</code> to charge for web resources — no account, no form. Version 2 with CAIP-2 identifiers. Maintained by the x402 Foundation (Coinbase fork).",
+    faq6_q: "Does it work on any site?",
+    faq6_a: "ReadPay works on sites that implement <strong>x402</strong>. The project includes a <strong>local demo publisher</strong> (<code>npm run demo-server</code>) to test end-to-end without relying on external publishers.",
+    cta_h: "Ready to pay only for<br/>what you read?",
+    cta_p: "Open source, no backend, no account, no subscription. One key, one faucet, and you're in.",
+    cta_btn: "View on GitHub and install",
+    cta_note1: "No backend server",
+    cta_note2: "Arc Testnet — free funds",
+    footer_hackathon: "Built for the <strong style='color:var(--text)'>Lepton Agents Hackathon</strong> · Canteen × Circle × Arc · Arc Testnet · testnet funds only",
+  },
+
+  pt: {
+    nav_how: "Como funciona",
+    nav_install: "Instalar",
+    hero_tag: "Arc Testnet · Protocolo x402 · Circle Gateway",
+    hero_h1: "Pague pelo que você<br/><em>lê</em>.<br/>Não pelo resto.",
+    hero_sub: "Uma extensão de navegador que paga artigos automaticamente com <strong>centavos de USDC</strong> — liquidados em menos de 1 segundo na Arc. Sem cadastro, sem assinatura, sem carteira externa.",
+    hero_cta1: "Instalar agora",
+    hero_cta2: "Ver como funciona",
+    trust1: "Open Source · MIT",
+    trust2: "Sem servidor próprio",
+    trust3: "Chrome · Edge · Brave",
+    mockup_tag: "Jornalismo investigativo",
+    mockup_title: "O Fim das Assinaturas: Como os Nanopagamentos Mudam o Jornalismo",
+    mockup_excerpt: "Por décadas, o jornalismo digital ficou preso entre dar conteúdo de graça ou cobrar R$50/mês. Agora existe uma terceira via — pagar centavos por artigo, com liquidação instantânea em USDC na Arc...",
+    mockup_paid: "Desbloqueado pelo ReadPay · $0.0100 USDC",
+    stat_spent: "gasto hoje",
+    stat_articles: "artigos",
+    stat_time: "para pagar",
+    float_badge: "✓ Pago · $0.01 · Arc Testnet",
+    bigstat1: "pagamento mínimo em USDC",
+    bigstat2: "para desbloquear o conteúdo",
+    bigstat3: "taxa de gás por nanopagamento",
+    bigstat4: "blockchain da Circle com USDC nativo",
+    how_eyebrow: "Protocolo x402",
+    how_title: "O que acontece quando você lê",
+    how_sub: "Cada pagamento é uma assinatura criptográfica offchain — rápida e sem gás. O Circle Gateway agrega e liquida em lote na Arc.",
+    tl1_h: "Você abre o artigo",
+    tl1_p: "O site responde com <code>HTTP 402 Payment Required</code>. No corpo: valor em USDC, carteira do publisher e rede Arc. Nada ainda foi pago.",
+    tl2_h: "ReadPay verifica seu orçamento",
+    tl2_p: "Antes de pagar, a extensão checa seus limites (ex: máx $0.10 por artigo, $2.00 por dia). Se o valor estiver dentro do limite, o pagamento é automático.",
+    tl3_h: "Assinatura EIP-3009 (offchain, zero gás)",
+    tl3_p: "A chave assina uma autorização <code>EIP-3009</code> usando o saldo na Arc. Nenhuma transação onchain agora — só uma assinatura criptográfica local.",
+    tl4_h: "Conteúdo desbloqueado · liquidação em lote",
+    tl4_p: "O artigo aparece em menos de 1 segundo. O Circle Gateway coleta as autorizações e liquida em um único lote onchain — o publisher recebe USDC, ninguém paga gás por pagamento.",
+    wallet_h: "Não precisa de MetaMask nem carteira externa",
+    wallet_p: "A Arc é <strong>compatível com EVM</strong>. ReadPay usa uma chave privada que você importa uma vez no popup. Ela é criptografada com <strong>AES-256-GCM</strong> e fica só no navegador — nunca sai do dispositivo. O depósito inicial é feito via <strong>faucet gratuito</strong> (testnet — não é dinheiro real).",
+    wv_network: "Rede",
+    wv_gas: "Token de gás",
+    wv_balance: "Saldo leitor",
+    wv_spent: "Gasto hoje",
+    wv_key: "Chave",
+    install_eyebrow: "Instalação",
+    install_title: "Três passos para começar",
+    install_sub: "Sem Chrome Web Store por enquanto — carregamento de desenvolvedor em 2 minutos.",
+    step1_h: "Clone e faça o build",
+    step1_p: "Clone o repositório no GitHub. Rode <span class='mono'>npm install && npm run build</span>. A pasta <span class='mono'>dist/</span> é gerada.",
+    step1_link: "Ver no GitHub →",
+    step2_h: "Carregue no Chrome",
+    step2_p: "Vá em <span class='mono'>chrome://extensions</span>, ative o Modo Desenvolvedor, clique em <strong style='color:var(--text)'>Carregar sem compactação</strong> e selecione a pasta <span class='mono'>dist/</span>.",
+    step2_link: "Funciona em Edge e Brave também →",
+    step3_h: "USDC gratuito via faucet",
+    step3_p: "Cole sua chave privada de testnet no popup. Depois acesse o faucet da Circle, selecione Arc Testnet e receba USDC gratuito para testar.",
+    step3_link: "Faucet da Circle →",
+    faq_eyebrow: "Dúvidas",
+    faq_title: "Perguntas frequentes",
+    faq1_q: "Preciso de MetaMask ou carteira externa?",
+    faq1_a: "<strong>Não.</strong> ReadPay gerencia a chave internamente. Você cola a private key uma vez, ela é criptografada com AES-256 e fica só no navegador. Sem MetaMask, sem WalletConnect.",
+    faq2_q: "O que é a Arc Testnet?",
+    faq2_a: "L1 da Circle, compatível com EVM, com <strong>USDC como token de gás nativo</strong>. Finalidade em menos de 1 segundo. Chain ID <code>5042002</code>, RPC em <code>rpc.testnet.arc.network</code>. Testnet — fundos gratuitos via faucet.",
+    faq3_q: "Quanto custa cada pagamento?",
+    faq3_a: "<strong>Zero taxa de gás</strong> graças ao Circle Gateway (liquidação em lote). Você paga só o preço do artigo — tipicamente $0.001 a $0.05 USDC. No testnet, USDC é gratuito via faucet.",
+    faq4_q: "Minha chave privada está segura?",
+    faq4_a: "A chave é criptografada com <code>AES-256-GCM</code> (SubtleCrypto nativo do browser) antes de salvar no <code>chrome.storage.local</code>. Nunca é enviada a servidor algum. <strong>Use só carteiras de testnet.</strong>",
+    faq5_q: "O que é o protocolo x402?",
+    faq5_a: "Padrão aberto que usa o código HTTP <code>402 Payment Required</code> para cobrar por recursos web — sem conta, sem formulário. Versão 2 com identificadores CAIP-2. Mantido pela x402 Foundation.",
+    faq6_q: "Funciona em qualquer site?",
+    faq6_a: "ReadPay funciona em sites que implementam <strong>x402</strong>. O projeto inclui um <strong>publisher demo local</strong> (<code>npm run demo-server</code>) para testar end-to-end.",
+    cta_h: "Pronto para pagar só pelo<br/>que você lê?",
+    cta_p: "Open source, sem servidor, sem conta, sem assinatura. Uma chave, um faucet, e você está dentro.",
+    cta_btn: "Ver no GitHub e instalar",
+    cta_note1: "Sem servidor próprio",
+    cta_note2: "Arc Testnet — fundos gratuitos",
+    footer_hackathon: "Construído para o <strong style='color:var(--text)'>Lepton Agents Hackathon</strong> · Canteen × Circle × Arc · Arc Testnet · apenas fundos de testnet",
+  },
+
+  es: {
+    nav_how: "Cómo funciona",
+    nav_install: "Instalar",
+    hero_tag: "Arc Testnet · Protocolo x402 · Circle Gateway",
+    hero_h1: "Paga por lo que<br/><em>lees</em>.<br/>No por el resto.",
+    hero_sub: "Una extensión de navegador que paga artículos automáticamente con <strong>centavos de USDC</strong> — liquidados en menos de 1 segundo en Arc. Sin registro, sin suscripción, sin billetera externa.",
+    hero_cta1: "Instalar ahora",
+    hero_cta2: "Ver cómo funciona",
+    trust1: "Open Source · MIT",
+    trust2: "Sin servidor propio",
+    trust3: "Chrome · Edge · Brave",
+    mockup_tag: "Periodismo de investigación",
+    mockup_title: "El Fin de las Suscripciones: Cómo los Nanopagos Cambian el Periodismo",
+    mockup_excerpt: "Durante décadas, el periodismo digital quedó atrapado entre contenido gratuito y suscripciones de $10/mes. Ahora existe una tercera vía — pagar centavos por artículo, liquidados al instante en USDC en Arc...",
+    mockup_paid: "Desbloqueado por ReadPay · $0.0100 USDC",
+    stat_spent: "gastado hoy",
+    stat_articles: "artículos",
+    stat_time: "para pagar",
+    float_badge: "✓ Pagado · $0.01 · Arc Testnet",
+    bigstat1: "pago mínimo en USDC",
+    bigstat2: "para desbloquear el contenido",
+    bigstat3: "tarifa de gas por nanopago",
+    bigstat4: "blockchain de Circle con USDC nativo",
+    how_eyebrow: "Protocolo x402",
+    how_title: "Qué pasa cuando lees",
+    how_sub: "Cada pago es una firma criptográfica offchain — rápida y sin gas. Circle Gateway agrupa y liquida en lote en Arc.",
+    tl1_h: "Abres el artículo",
+    tl1_p: "El sitio responde con <code>HTTP 402 Payment Required</code>. El cuerpo contiene: monto en USDC, billetera del publisher y red Arc. Aún no se ha pagado nada.",
+    tl2_h: "ReadPay verifica tu presupuesto",
+    tl2_p: "Antes de pagar, la extensión verifica tus límites (ej: máx $0.10 por artículo, $2.00 por día). Si el monto está dentro del límite, el pago es automático.",
+    tl3_h: "Firma EIP-3009 (offchain, sin gas)",
+    tl3_p: "Tu clave firma una autorización <code>EIP-3009</code> usando el saldo en Arc. Sin transacción onchain en este momento — solo una firma criptográfica local.",
+    tl4_h: "Contenido desbloqueado · liquidación en lote",
+    tl4_p: "El artículo aparece en menos de 1 segundo. Circle Gateway recopila las autorizaciones y las liquida en un solo lote onchain — el publisher recibe USDC, nadie paga gas por pago.",
+    wallet_h: "Sin MetaMask ni billetera externa",
+    wallet_p: "Arc es <strong>compatible con EVM</strong>. ReadPay usa una clave privada que importas una vez en el popup. Se cifra con <strong>AES-256-GCM</strong> y permanece solo en tu navegador — nunca sale del dispositivo. El depósito inicial se hace vía <strong>faucet gratuito</strong> (testnet — no es dinero real).",
+    wv_network: "Red",
+    wv_gas: "Token de gas",
+    wv_balance: "Saldo lector",
+    wv_spent: "Gastado hoy",
+    wv_key: "Clave",
+    install_eyebrow: "Instalación",
+    install_title: "Tres pasos para empezar",
+    install_sub: "Aún sin Chrome Web Store — carga de desarrollador en 2 minutos.",
+    step1_h: "Clona y compila",
+    step1_p: "Clona el repositorio de GitHub. Ejecuta <span class='mono'>npm install && npm run build</span>. Se genera la carpeta <span class='mono'>dist/</span>.",
+    step1_link: "Ver en GitHub →",
+    step2_h: "Carga en Chrome",
+    step2_p: "Ve a <span class='mono'>chrome://extensions</span>, activa el Modo Desarrollador, haz clic en <strong style='color:var(--text)'>Cargar sin empaquetar</strong> y selecciona la carpeta <span class='mono'>dist/</span>.",
+    step2_link: "Funciona en Edge y Brave también →",
+    step3_h: "USDC gratis vía faucet",
+    step3_p: "Pega tu clave privada de testnet en el popup. Luego accede al faucet de Circle, selecciona Arc Testnet y recibe USDC gratis para probar.",
+    step3_link: "Faucet de Circle →",
+    faq_eyebrow: "Preguntas",
+    faq_title: "Preguntas frecuentes",
+    faq1_q: "¿Necesito MetaMask o una billetera externa?",
+    faq1_a: "<strong>No.</strong> ReadPay gestiona la clave internamente. Pegas tu clave privada una vez, se cifra con AES-256 y permanece solo en el navegador. Sin MetaMask, sin WalletConnect.",
+    faq2_q: "¿Qué es Arc Testnet?",
+    faq2_a: "L1 de Circle, compatible con EVM, con <strong>USDC como token de gas nativo</strong>. Finalidad en menos de 1 segundo. Chain ID <code>5042002</code>, RPC en <code>rpc.testnet.arc.network</code>. Solo testnet — fondos gratuitos vía faucet.",
+    faq3_q: "¿Cuánto cuesta cada pago?",
+    faq3_a: "<strong>Cero tarifa de gas</strong> gracias a Circle Gateway (liquidación en lote). Solo pagas el precio del artículo — típicamente $0.001 a $0.05 USDC. En testnet, USDC es gratuito vía faucet.",
+    faq4_q: "¿Es segura mi clave privada?",
+    faq4_a: "La clave se cifra con <code>AES-256-GCM</code> (SubtleCrypto nativo del browser) antes de guardarse en <code>chrome.storage.local</code>. Nunca se envía a ningún servidor. <strong>Usa solo billeteras de testnet.</strong>",
+    faq5_q: "¿Qué es el protocolo x402?",
+    faq5_a: "Estándar abierto que usa el código HTTP <code>402 Payment Required</code> para cobrar por recursos web — sin cuenta, sin formulario. Versión 2 con identificadores CAIP-2. Mantenido por la x402 Foundation.",
+    faq6_q: "¿Funciona en cualquier sitio?",
+    faq6_a: "ReadPay funciona en sitios que implementan <strong>x402</strong>. El proyecto incluye un <strong>publisher demo local</strong> (<code>npm run demo-server</code>) para probar de extremo a extremo.",
+    cta_h: "¿Listo para pagar solo por<br/>lo que lees?",
+    cta_p: "Open source, sin servidor, sin cuenta, sin suscripción. Una clave, un faucet, y ya estás dentro.",
+    cta_btn: "Ver en GitHub e instalar",
+    cta_note1: "Sin servidor propio",
+    cta_note2: "Arc Testnet — fondos gratuitos",
+    footer_hackathon: "Construido para el <strong style='color:var(--text)'>Lepton Agents Hackathon</strong> · Canteen × Circle × Arc · Arc Testnet · solo fondos de testnet",
+  }
+};
+
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.toLowerCase() === lang || (btn.textContent === 'PT' && lang === 'pt'));
+  });
+
+  const t = i18n[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+}
+
+setLang('en');
+</script>
+</body>
+</html>
