@@ -9,19 +9,11 @@ export default defineConfig({
     crx({ manifest }),
   ],
   build: {
-    rollupOptions: {
-      input: {
-        popup: "src/popup/index.html",
-      },
-    },
-    // Keep bundles reasonable for extension
+    // crxjs manages all entry points via manifest.json — do NOT add rollupOptions.input
     chunkSizeWarningLimit: 1500,
   },
-  // viem uses Node builtins — polyfill for browser
   resolve: {
-    alias: {
-      // Prevent Node-only imports from breaking the browser build
-    },
+    alias: {},
   },
   define: {
     global: "globalThis",

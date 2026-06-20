@@ -88,19 +88,20 @@ export async function payAndFetch(
   }
 
   // Decode to extract the amount
+  // x402 v2 header: base64(JSON) → { x402Version, accepts: [{network, amount, ...}] }
+  // The field is "amount" in v2 (not "value" which was v1)
   let amountUsdc = 0;
   try {
     const decoded = JSON.parse(atob(paymentRequiredHeader));
-    // x402 v2: accepts is an array of PaymentRequirement objects
     const accepts = decoded?.accepts ?? [];
     const arcOption = accepts.find(
-      (a: { network: string; asset?: string; value?: string }) =>
+      (a: { network: string; amount?: string }) =>
         a.network === ARC_NETWORK_ID || a.network === "eip155:5042002"
     ) ?? accepts[0];
 
-    if (arcOption?.value) {
-      // Value is in token's base units (USDC = 6 decimals)
-      amountUsdc = rawToUsdc(BigInt(arcOption.value));
+    if (arcOption?.amount) {
+      // amount is in USDC base units (6 decimals)
+      amountUsdc = rawToUsdc(BigInt(arcOption.amount));
     }
   } catch {
     // Can't parse amount — continue with 0 (budget check will be lenient)

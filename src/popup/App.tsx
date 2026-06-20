@@ -410,16 +410,7 @@ function Stat({
   );
 }
 
-// ---- Types for history ----
-interface PaymentRecord {
-  id: string;
-  url: string;
-  title: string;
-  amountUsdc: number;
-  timestamp: number;
-  txHash?: string;
-  domain: string;
-}
+// PaymentRecord type is imported from ../payment/history above
 
 // ---- Root App ----
 

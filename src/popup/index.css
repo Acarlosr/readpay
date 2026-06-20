@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 body {
-  width: 340px;
-  min-height: 480px;
+  width: 360px;
+  min-height: 520px;
   margin: 0;
   overflow-x: hidden;
 }
