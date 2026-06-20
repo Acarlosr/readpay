@@ -13,11 +13,11 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { privateKeyToAccount } from "viem/accounts";
-import * as dotenv from "dotenv";
 import * as url from "url";
 import * as path from "path";
+import process from "node:process";
 
-dotenv.config({ path: path.resolve(url.fileURLToPath(import.meta.url), "../../.env") });
+process.loadEnvFile(path.resolve(url.fileURLToPath(import.meta.url), "../../.env"));
 
 // ---- Config ----
 
@@ -47,12 +47,22 @@ console.log(`📨 Publisher: ${publisherAccount.address}`);
 
 // Arc Testnet CAIP-2 identifier
 const ARC_NETWORK = "eip155:5042002";
+const ARC_USDC = "0x3600000000000000000000000000000000000000" as const;
+
+/** USDC has 6 decimals on Arc */
+const usdc = (dollars: number) => ({
+  amount: String(Math.round(dollars * 1_000_000)),
+  asset: ARC_USDC,
+});
 
 // ---- x402 Server setup (v2 API) ----
 
-// Circle's public facilitator handles verification + Arc Testnet settlement
+const FACILITATOR_URL =
+  process.env.X402_FACILITATOR_URL ??
+  "https://arc-testnet-x402-facilitator.onrender.com";
+
 const facilitatorClient = new HTTPFacilitatorClient({
-  url: "https://facilitator.x402.org",
+  url: FACILITATOR_URL,
 });
 
 const resourceServer = new x402ResourceServer(facilitatorClient).register(
@@ -88,7 +98,7 @@ app.use(
       "GET /api/article": {
         accepts: {
           scheme: "exact",
-          price: "$0.01",              // 1 cent per article read
+          price: usdc(0.01),
           network: ARC_NETWORK,
           payTo: publisherAccount.address,
         },
@@ -97,7 +107,7 @@ app.use(
       "GET /api/summary": {
         accepts: {
           scheme: "exact",
-          price: "$0.001",             // 0.1 cent — sub-cent demo
+          price: usdc(0.001),
           network: ARC_NETWORK,
           payTo: publisherAccount.address,
         },
@@ -106,7 +116,7 @@ app.use(
       "GET /api/premium": {
         accepts: {
           scheme: "exact",
-          price: "$0.05",              // 5 cents — premium tier
+          price: usdc(0.05),
           network: ARC_NETWORK,
           payTo: publisherAccount.address,
         },
